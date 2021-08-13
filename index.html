@@ -102,7 +102,7 @@
                         ids.push({"q": checked[i].question, "a": checked[i].answer});
                     }
                     $.messager.prompt('提示', '请输入密码以删除：', function (r) {
-                        if (r == 'X2417481092ZY') {
+                        if (r == '12345678') {
                             $("#table").datagrid("loading");
                             $.getJSON('deleteById', {'ids[]': JSON.stringify(ids)}, function (res) {
                                 $.messager.show({
@@ -203,7 +203,7 @@
         var row = $("#table").datagrid("getRows")[index];
         // $.messager.progress();
                     $.messager.prompt('提示', '请输入密码以删除：', function (r) {
-                        if (r == 'X2417481092ZY') {
+                        if (r == '12345678') {
                 $.getJSON('deleteById', {'q': row.question, 'a': row.answer}, function (res) {
                     $.messager.show({
                         title: '提示',
