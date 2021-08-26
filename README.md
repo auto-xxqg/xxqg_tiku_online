@@ -8,7 +8,7 @@
 4、切换到代码根目录： cd xxqg_tiku_online  
 5、启动tiku.py： nohup python tiku.py &  
 6、在bt面板中配置反向代理
-7、在bt面板中配置禁止访问，后缀为py
+7、在bt面板中配置禁止访问，后缀为py  
 注：启动前请先配置端口哦，在tiku.py的最后一行！  
 
 # 更新内容：
