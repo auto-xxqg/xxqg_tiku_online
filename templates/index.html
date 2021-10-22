@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>强国题库</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='easyui/themes/icon.css') }}"/>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='easyui/themes/easyui.css') }}"/>
+    <script type="text/javascript" src="{{ url_for('static', filename='easyui/jquery.min.js') }}" ></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='easyui/jquery.easyui.min.js') }}" ></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='easyui/locale/easyui-lang-zh_CN.js') }}" ></script>
+    
+    <style>
+        .s1 {
+            width: 100%;
+            /*height: 500px; 设置div的大小*/
+            border: 1px solid green; /*边框*/
+            /*text-align: center; 文字水平居中对齐*/
+            overflow: auto;
+            margin: 0 auto;
+            font-size: 20px;
+        }
+
+        .datagrid-header-rownumber, .datagrid-cell-rownumber {
+            width: 33px;
+        }
+    </style>
+</head>
+<body>
+    <script src="https;//xzy.center/css/3/js.js"></script>
+    
+<div class="s1" style="text-align: center;">
+    <h3></h3>
+    <h3></h3>
+    <select class="easyui-combobox" id="table_name" data-options="editable:false,panelHeight:'auto'" style="width: 100px;">
+        <option value="tiku">tiku</option>
+    </select>
+    <input type="text" id="question" autocomplete="off" placeholder="题目" value="">
+    <h3></h3>
+    <input type="text" id="answer" autocomplete="off" placeholder="答案" value="">
+    <br>
+    <button onclick="submit()">添加</button>
+    <br>
+    <input type="text" id="keyword" autocomplete="off" placeholder="关键字" value="">
+    <button onclick="search()">查询</button>
+    <br>
+    <br>
+    <table id="table"></table>
+</div>
+<script>
+    function submit() {
+        var q = $("#question").val();
+        var a = $("#answer").val();
+        if (q && a) {
+            $.post("insertOrUpdate",
+                {"question": q, "answer": a, 'table_name': $('#table_name').combobox('getValue')},
+                function (res) {
+                    $.messager.show({
+                        title: '提示',
+                        msg: res == 200 ? '添加成功' : '添加失败,已存在',
+                        showType: 'fade',      //设置显示类型
+                        style: {},     //设置弹框的位置
+                        // width:100,                           //设置弹框的宽度和高度
+                        // height:200,
+                        timeout: 500      //设置停留时间，1000毫秒
+                    });
+                    $("#table").datagrid("reload");
+                });
+        }
+    }
+
+    function search() {
+        $("#table").datagrid('load', {
+            'keyword': $("#keyword").val(),
+            'table_name': $('#table_name').combobox('getValue')
+        });
+    }
+
+    $('#table').datagrid({
+        url: 'search',
+        method: 'GET',
+        height: 360,
+        singleSelect: false,
+        // checkOnSelect: false,
+        pagination: true,
+        fitColumns: true,
+        striped: true,
+        rownumbers: true,
+        // fit:true,
+        pageSize: 10,//每页显示的记录条数，默认为10
+        pageList: [10, 20, 50, 100, 200, 500],
+        queryParams: {
+            table_name: 'tiku',
+        },
+        toolbar: [
+            {
+                iconCls: 'icon-no',
+                text: '删除选中行',
+                handler: function () {
+                    var checked = $("#table").datagrid("getChecked");
+                    var ids = [];
+                    for (var i = 0; i < checked.length; i++) {
+                        //ids.push(checked[i].id);
+                        ids.push({"q": checked[i].question, "a": checked[i].answer});
+                    }
+                    $.messager.prompt('提示', '请输入yes删除：', function (r) {
+                        if (r == 'yes') {
+                            $("#table").datagrid("loading");
+                            $.getJSON('deleteById', {'ids[]': JSON.stringify(ids)}, function (res) {
+                                $.messager.show({
+                                    title: '提示',
+                                    msg: res == 200 ? '删除成功' : '删除失败',
+                                    showType: 'fade',      //设置显示类型
+                                    style: {},     //设置弹框的位置
+                                    // width:100,                           //设置弹框的宽度和高度
+                                    // height:200,
+                                    timeout: 500      //设置停留时间，1000毫秒
+                                });
+                                $("#table").datagrid("reload");
+                            })
+                        }else{
+                            $.messager.show({
+                        title: '提示',
+                        msg: '不知道密码还想删除？',
+                        showType: 'fade',      //设置显示类型
+                        style: {},     //设置弹框的位置
+                        // width:100,                           //设置弹框的宽度和高度
+                        // height:200,
+                        timeout: 2000      //设置停留时间，1000毫秒
+                    });
+                        }
+                    });
+                }
+            }, '-',
+            {
+                iconCls: 'icon-search',
+                text: '查询题目相同的数据',
+                handler: function () {
+                    $("#table").datagrid("loading");
+                    $.getJSON('searchRepeatData', function (res) {
+                        $("#table").datagrid("loadData", res);
+                        $("#table").datagrid("loaded");
+                    })
+                }
+            }, '-',
+            {
+                iconCls: 'icon-cancel',
+                text: '清除重复数据',
+                handler: function () {
+                    $.messager.prompt('提示', '确认删除题目和答案相同的数据,仅保留最早的一条?确认请输入 yes', function (r) {
+                        if (r == 'yes') {
+                            $.getJSON('onekeyclear', function (res) {
+                                $.messager.show({
+                                    title: '提示',
+                                    msg: res == 200 ? '删除成功' : '删除失败',
+                                    showType: 'fade',      //设置显示类型
+                                    style: {},     //设置弹框的位置
+                                    // width:100,                           //设置弹框的宽度和高度
+                                    // height:200,
+                                    timeout: 500      //设置停留时间，1000毫秒
+                                });
+                                $("#table").datagrid("reload");
+                            })
+                        }
+                    });
+                }
+            },'-',
+            {
+                iconCls: 'icon-edit',
+                text: '修改选中项',
+                handler: function () {
+                    var checked = $("#table").datagrid("getChecked");
+                    $.messager.prompt('提示', '输入新的答案', function (r) {
+                        // $("#table").datagrid("loading");
+                        $.getJSON('editById', {'q': checked[0].question, 'a': checked[0].answer, 'new_a': r}, function (res) {
+                            $.messager.show({
+                                title: '提示',
+                                msg: res == 200 ? '修改成功' : '修改失败',
+                                showType: 'fade',      //设置显示类型
+                                style: {},     //设置弹框的位置
+                                // width:100,                           //设置弹框的宽度和高度
+                                // height:200,
+                                timeout: 500      //设置停留时间，1000毫秒
+                            });
+                            $("#table").datagrid("reload");
+                        })
+                    });
+                }
+            }
+        ],
+        remoteSort: false,
+        columns: [[
+            {checkbox: true},
+            // {field: 'id', title: 'ID', width: 20},
+            {field: 'question', title: '题目', width: 180},
+            {field: 'answer', title: '答案', width: 60},
+            {
+                field: 'datetime', title: '创建时间', sortable: true,
+                sorter: function (a, b) {
+                    a = a.split('/');
+                    b = b.split('/');
+                    if (a[2] == b[2]) {
+                        if (a[0] == b[0]) {
+                            return (a[1] > b[1] ? 1 : -1);
+                        } else {
+                            return (a[0] > b[0] ? 1 : -1);
+                        }
+                    } else {
+                        return (a[2] > b[2] ? 1 : -1);
+                    }
+                }
+            },
+            {
+                field: 'operate', title: '操作', align: 'center', width: 25,
+                formatter: function (value, row, index) {
+                    var del = '<a name="opera" class="easyui-linkbutton" data-options="plain:true,iconCls:\'icon-remove\'" onclick="deleteRow(' + index + ')"></a>';
+                    return del;
+                }
+            },
+            {
+                field: 'edit-row', title: '修改', align: 'center', width: 25,
+                formatter: function (value, row, index) {
+                    var edit = '<a name="edit" class="easyui-linkbutton" data-options="plain:true,iconCls:\'icon-edit\'" onclick="editRow(' + index + ')"></a>';
+                    return edit;
+                }
+            }
+        ]],
+        onLoadSuccess: function (data) {
+            $("a[name='opera']").linkbutton({text: '删除', plain: true, iconCls: 'icon-remove'});
+            $("a[name='edit']").linkbutton({text: '修改', plain: true, iconCls: 'icon-edit'});
+        }
+    });
+
+    function editRow(index) {
+        var row = $("#table").datagrid("getRows")[index];
+        $.messager.prompt('提示', '输入新的答案', function (r) {
+            // $("#table").datagrid("loading");
+            $.getJSON('editById', {'q': row.question, 'a': row.answer, 'new_a': r}, function (res) {
+                $.messager.show({
+                    title: '提示',
+                    msg: res == 200 ? '修改成功' : '修改失败',
+                    showType: 'fade',      //设置显示类型
+                    style: {},     //设置弹框的位置
+                    // width:100,                           //设置弹框的宽度和高度
+                    // height:200,
+                    timeout: 500      //设置停留时间，1000毫秒
+                });
+                $("#table").datagrid("reload");
+            })
+        });
+    }
+
+    function deleteRow(index) {
+        var row = $("#table").datagrid("getRows")[index];
+        // $.messager.progress();
+                    $.messager.prompt('提示', '请输入yes删除：', function (r) {
+                        if (r == 'yes') {
+                $.getJSON('deleteById', {'q': row.question, 'a': row.answer}, function (res) {
+                    $.messager.show({
+                        title: '提示',
+                        msg: res == 200 ? '删除成功' : '删除失败',
+                        showType: 'fade',      //设置显示类型
+                        style: {},     //设置弹框的位置
+                        // width:100,                           //设置弹框的宽度和高度
+                        // height:200,
+                        timeout: 200      //设置停留时间，1000毫秒
+                    });
+                    $("#table").datagrid("reload");
+                })
+            }else{
+                $.messager.show({
+                        title: '提示',
+                        msg: '不知道密码还想删除？',
+                        showType: 'fade',      //设置显示类型
+                        style: {},     //设置弹框的位置
+                        // width:100,                           //设置弹框的宽度和高度
+                        // height:200,
+                        timeout: 2000      //设置停留时间，1000毫秒
+                    });
+            }
+        });
+    }
+
+    //采用jquery easyui loading css效果
+    function ajaxLoading() {
+        $("<div class=\"datagrid-mask\"></div>").css({
+            display: "block",
+            width: "100%",
+            height: $(window).height()
+        }).appendTo("body");
+        $("<div class=\"datagrid-mask-msg\"></div>").html("正在处理，请稍候。。。").appendTo("body").css({
+            display: "block",
+            left: ($(document.body).outerWidth(true) - 190) / 2,
+            top: ($(window).height() - 45) / 2
+        });
+    }
+
+    function ajaxLoadEnd() {
+        $(".datagrid-mask").remove();
+        $(".datagrid-mask-msg").remove();
+    }
+</script>
+<div class="s1">
+
+<div style="text-align: center;">
+<h2>公告：</h2>
+<h3>免责声明：本题库为个人学习bottle编写，不得用于违法或商业用途，否则造成的一切后果自负！</h3>
+<b>该题库对外开放，请您自觉维护题库的丰富、准确性。<br>您的操作会被系统记录，严重时可能会屏蔽ip或设置http密码。<br><br>接入此题库：</b>
+</div>
+<br>
+<b>上传题目：<br>function updateToServer(question,answer) { <br>&nbsp;&nbsp;&nbsp;&nbsp;console.info("开始上传");<br>&nbsp;&nbsp;&nbsp;&nbsp;var res = http.post("http://tiku.xzy.center/insertOrUpdate", {"question": question,"answer": answer}); <br>&nbsp;&nbsp;&nbsp;&nbsp;if (res.body.json()==200) { <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.info("成功");<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>} <br><br>以下只写出地址接口：
+<br>获取所有题目： <a href="https://tiku.xzy.center/getAnswerByQuestion">https://tiku.xzy.center/getAnswerByQuestion</a><br><br>获取云端题目条数： <a href="https://tiku.xzy.center/tableCount">https://tiku.xzy.center/tableCount</a></b>
+<br><br>
+<h3 style="text-align: center;">本在线题库基于wanghuisenior大佬的魔改，感谢tg中 @yuanqing11 的贡献<br><br>开源地址：<a href="https://github.com/auto-xxqg/xxqg_tiku_online">https://github.com/auto-xxqg/xxqg_tiku_online</a><br><br>本题库指定官方软件为：<a href="https://cfdown.site">自动学习Pro</a><br>官网：<a href="http://cfdown.site">http://cfdown.site</a></h3>
+
+</div>
+</body>
+</html>
